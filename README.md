@@ -1,1 +1,3 @@
-# OpenAI-GPT
+# Data Validation and Processing Flask Application
+<h2>Description</h2>
+This Flask application allows users to upload a CSV file, which is then processed to identify and report data integrity issues based on specific validation rules. The script validates the data by checking for unrealistic values, inconsistencies, missing information, and duplicates across various columns. After processing, the application generates an Excel file with multiple sheets, each containing records that violated one of the predefined validation rules, along with a Table of Contents for easy navigation. Users can then download the processed Excel file for further review and correction. The application employs OpenAI's GPT model to assist in data validation and provides a user-friendly web interface for uploading and downloading files.
