@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ Assistant</title>
+    <style>
+        .qa-container {
+            margin-top: 20px;
+        }
+        .question-box {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .answer-box {
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>FAQ Assistant</h1>
+    <textarea id="question" placeholder="Ask a question"></textarea>
+    <button onclick="getAnswer()">Get Answer</button>
+    <div class="qa-container" id="qa-container"></div>
+    <pre id="output"></pre>
+
+    <script>
+        const fetchAggregatedData = async () => {
+            try {
+                console.log('Fetching aggregated data...');
+                const response = await fetch(`path/to/your/aggregated_text.json`);  // Replace with actual URL
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const contentType = response.headers.get('content-type');
+                console.log('Content-Type:', contentType);
+
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error(`Invalid content-type. Expected application/json but received ${contentType}`);
+                }
+
+                const data = await response.json();
+                console.log('Fetched data:', data);
+
+                let combinedText = '';
+                Object.values(data).forEach(text => {
+                    combinedText += text + '\n\n';
+                });
+
+                console.log('Combined text:', combinedText);
+                return combinedText;
+            } catch (error) {
+                console.error('Error fetching aggregated data:', error);
+                throw error;
+            }
+        }
+
+        const getAnswer = async () => {
+            const question = document.getElementById('question').value;
+            const qaContainer = document.getElementById('qa-container');
+            const outputDiv = document.getElementById('output');
+
+            // Create new question and answer containers
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question-box';
+            questionDiv.textContent = `Q: ${question}`;
+
+            const answerDiv = document.createElement('div');
+            answerDiv.className = 'answer-box';
+            // Initially set answer text for loading state
+            answerDiv.textContent = 'Loading answer...';
+            answerDiv.style.color = 'black';
+
+            // Append question and answer to the container
+            qaContainer.appendChild(questionDiv);
+            qaContainer.appendChild(answerDiv);
+
+            try {
+                const aggregatedData = await fetchAggregatedData();
+                console.log('Aggregated data:', aggregatedData);
+
+                const messages = [
+                    { role: "system", content: "Answer questions based on the content from this material." },
+                    { role: "user", content: aggregatedData },
+                    { role: "user", content: `Question: ${question}\n\nAnswer:` }
+                ];
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Replace with your actual API key, but make sure not to expose this in a public environment
+                        'Authorization': `Bearer your_api_key_here`,  
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',  // Use the correct OpenAI model name
+                        messages,
+                        max_tokens: 500,
+                        temperature: 0.7,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('HTTP error:', response.status, errorText);
+                    throw new Error(`HTTP error! Status: ${response.status}, details: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('OpenAI response:', data);
+
+                if (data && data.choices && data.choices.length > 0) {
+                    answerDiv.textContent = data.choices[0].message.content.trim();
+                } else {
+                    answerDiv.textContent = 'No valid response received.';
+                    answerDiv.style.color = 'red';
+                }
+                outputDiv.textContent = '';
+            } catch (error) {
+                console.error('Error:', error);
+                answerDiv.textContent = 'Sorry, there was an error getting the answer. Please try again.';
+                answerDiv.style.color = 'red';
+                outputDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
